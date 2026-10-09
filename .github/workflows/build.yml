@@ -38,8 +38,8 @@ jobs:
         run: nuget restore
       
       - name: Build
-        run: msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:Platform=x64 /p:TargetFramework=net9.0-windows /p:SelfContained=false /verbosity:minimal
-
+        run: msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:TargetFramework=net9.0-windows /p:SelfContained=false /verbosity:minimal
+        
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
