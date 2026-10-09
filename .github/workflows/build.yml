@@ -1,10 +1,10 @@
-name: Aniimo-AssetStudioBuild
+name: AssetStudioBuild
 
 on:
   push:
-    branches: [ master ]
+    branches: [ AssetStudioMod ]
   pull_request:
-    branches: [ master ]
+    branches: [ AssetStudioMod ]
   workflow_dispatch:
 
 jobs:
@@ -30,31 +30,34 @@ jobs:
 
           Set-Location ..
 
-      - name: Nuget Restore
-        run: nuget restore
+      - name: NuGet Restore
+        run: nuget restore AssetStudio.sln
 
-      - name: Build .Net472
+      - name: Restore .NET targets
+        run: dotnet restore AssetStudioGUI/AssetStudioGUI.csproj
+
+      - name: Build .NET Framework 4.7.2
         run: msbuild /p:Configuration=Release /p:TargetFramework=net472 /verbosity:minimal
 
-      - name: Build .Net5
-        run: msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:TargetFramework=net5.0-windows /p:SelfContained=false /verbosity:minimal
+      - name: Build .NET 5
+        run: dotnet publish AssetStudioGUI/AssetStudioGUI.csproj -c Release -f net5.0-windows --no-restore
 
-      - name: Build .Net6
-        run: msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:SelfContained=false /verbosity:minimal
+      - name: Build .NET 6
+        run: dotnet publish AssetStudioGUI/AssetStudioGUI.csproj -c Release -f net6.0-windows
 
-      - name: Upload .Net472 Artifact
+      - name: Upload .NET Framework 4.7.2
         uses: actions/upload-artifact@v4
         with:
           name: AssetStudio-net472
           path: AssetStudioGUI/bin/Release/net472
 
-      - name: Upload .Net5 Artifact
+      - name: Upload .NET 5
         uses: actions/upload-artifact@v4
         with:
           name: AssetStudio-net5
           path: AssetStudioGUI/bin/Release/net5.0-windows/publish
 
-      - name: Upload .Net6 Artifact
+      - name: Upload .NET 6
         uses: actions/upload-artifact@v4
         with:
           name: AssetStudio-net6
