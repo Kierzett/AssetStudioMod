@@ -36,10 +36,13 @@ jobs:
 
       - name: Nuget Restore
         run: nuget restore
-      
+
+      - name: Build solution
+        run: msbuild /p:Configuration=Release /p:TargetFramework=net9.0-windows /verbosity:minimal
+
       - name: Build
         run: msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:TargetFramework=net9.0-windows /p:SelfContained=false /verbosity:minimal
-        
+      
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
