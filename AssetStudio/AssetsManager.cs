@@ -871,6 +871,8 @@ namespace AssetStudio
                         }
                     }
                 }
+                }
+            }
         private void LinkOrphanSkinnedMeshes()
         {
             // 1. Firma de huesos -> Mesh. Si hay varios con la misma firma
