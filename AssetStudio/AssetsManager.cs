@@ -157,9 +157,10 @@ namespace AssetStudio
             assetsFileListHash.Clear();
             if (AssetsFileList.Count == 0)
                 return;
-
+            
             ReadAssets();
             ProcessAssets();
+            LinkOrphanSkinnedMeshes();
         }
 
         private bool LoadFile(string fullName)
@@ -870,7 +871,100 @@ namespace AssetStudio
                         }
                     }
                 }
+        private void LinkOrphanSkinnedMeshes()
+        {
+            // 1. Firma de huesos -> Mesh. Si hay varios con la misma firma
+            //    (Body, Body_LOD1...), prefiere el que no tiene LOD en el nombre.
+            var meshesBySignature = new Dictionary<string, Mesh>();
+            foreach (var assetsFile in AssetsFileList)
+            {
+                foreach (var obj in assetsFile.Objects)
+                {
+                    if (obj is Mesh mesh && mesh.m_BoneNameHashes != null && mesh.m_BoneNameHashes.Length > 0)
+                    {
+                        var sig = BoneSignature(mesh.m_BoneNameHashes);
+                        if (!meshesBySignature.TryGetValue(sig, out var prev)
+                            || (IsLod(prev.m_Name) && !IsLod(mesh.m_Name)))
+                        {
+                            meshesBySignature[sig] = mesh;
+                        }
+                    }
+                }
             }
+
+            // 2. Renderers sin mesh asignado
+            var linked = 0;
+            foreach (var assetsFile in AssetsFileList)
+            {
+                foreach (var obj in assetsFile.Objects)
+                {
+                    if (obj is not SkinnedMeshRenderer smr || !smr.m_Mesh.IsNull)
+                        continue;
+
+                    var hashes = smr.m_Bones
+                        .Where(b => b.TryGet(out _))
+                        .Select(b => Crc32Of(BonePath(b)));
+                    var sig = BoneSignature(hashes);
+                    var goName = smr.m_GameObject.TryGet(out var go) ? go.m_Name : "?";
+
+                    if (meshesBySignature.TryGetValue(sig, out var match))
+                    {
+                        smr.m_Mesh.Set(match);
+                        linked++;
+                        Logger.Info($"Mesh enlazado: {match.m_Name} -> {goName}");
+                    }
+                    else
+                    {
+                        Logger.Warning($"Sin mesh para {goName} ({smr.m_Bones.Count} huesos)");
+                    }
+                }
+            }
+            Logger.Info($"Renderers enlazados: {linked}");
+        }
+
+        // Ruta del hueso sin la raíz del esqueleto, separada con "/"
+        private static string BonePath(PPtr<Transform> bone)
+        {
+            var parts = new List<string>();
+            var current = bone;
+            while (current.TryGet(out var t))
+            {
+                if (t.m_Father.IsNull) break; // raíz, se descarta
+                parts.Add(t.m_GameObject.TryGet(out var go) ? go.m_Name : "");
+                current = t.m_Father;
+            }
+            parts.Reverse();
+            return string.Join("/", parts);
+        }
+
+        private static string BoneSignature(IEnumerable<uint> hashes) =>
+            string.Join(",", hashes.Distinct().OrderBy(h => h));
+
+        private static bool IsLod(string name) =>
+            name != null && name.IndexOf("LOD", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        // CRC32 estándar (igual que zlib.crc32 de Python), sin dependencias externas
+        private static readonly uint[] Crc32Table = BuildCrc32Table();
+
+        private static uint[] BuildCrc32Table()
+        {
+            var table = new uint[256];
+            for (uint n = 0; n < 256; n++)
+            {
+                var c = n;
+                for (var k = 0; k < 8; k++)
+                    c = (c & 1) != 0 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+                table[n] = c;
+            }
+            return table;
+        }
+
+        private static uint Crc32Of(string s)
+        {
+            var crc = 0xFFFFFFFFu;
+            foreach (var b in Encoding.UTF8.GetBytes(s))
+                crc = Crc32Table[(crc ^ b) & 0xFF] ^ (crc >> 8);
+            return crc ^ 0xFFFFFFFFu;
         }
     }
 }
