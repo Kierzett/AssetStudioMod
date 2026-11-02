@@ -30,13 +30,10 @@ namespace AssetStudio
                 m_Components.Add(new PPtr<Component>(reader));
             }
 
-            var m_Layer = reader.ReadInt32();
-            if (version.IsTuanjie && (version > (2022, 3, 2) || (version == (2022, 3, 2) && version.Build >= 11))) //2022.3.2t11(1.1.3) and up
-            {
-                var m_HasEditorInfo = reader.ReadBoolean();
-                reader.AlignStream();
-            }
             m_Name = reader.ReadAlignedString();
+            var m_Tag = reader.ReadUInt16();
+            var m_Layer = reader.ReadByte();
+            var m_IsActive = reader.ReadBoolean();
         }
     }
 }
