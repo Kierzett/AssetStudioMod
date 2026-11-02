@@ -249,6 +249,10 @@ namespace AssetStudio
         public Skeleton m_RootMotionSkeleton;
         public SkeletonPose m_RootMotionSkeletonPose;
         public int[] m_RootMotionSkeletonIndexArray;
+        public uint m_Rig;
+        public int m_RigVersion;
+        public int[] m_RigIndexArray;
+        public int[] m_SkeletonRetargetingModeArray;
 
         public AvatarConstant(ObjectReader reader)
         {
@@ -281,6 +285,14 @@ namespace AssetStudio
                 m_RootMotionSkeletonPose = new SkeletonPose(reader);
 
                 m_RootMotionSkeletonIndexArray = reader.ReadInt32Array();
+
+                // m_SkeletonRetargetingRig (RetargetingRig)
+                m_Rig = reader.ReadUInt32();
+                m_RigVersion = reader.ReadInt32();
+                m_RigIndexArray = reader.ReadInt32Array();
+
+                // m_SkeletonRetargetingModeArray
+                m_SkeletonRetargetingModeArray = reader.ReadInt32Array();
             }
         }
     }
