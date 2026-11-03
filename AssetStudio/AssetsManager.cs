@@ -900,9 +900,14 @@ namespace AssetStudio
             {
                 foreach (var obj in assetsFile.Objects)
                 {
-                    if (obj is not SkinnedMeshRenderer smr || !smr.m_Mesh.IsNull)
+                    if (obj is not SkinnedMeshRenderer smr)
                         continue;
-
+                    
+                    // Solo reemplazar si no hay mesh, o si el mesh asignado es un placeholder sin huesos
+                    if (!smr.m_Mesh.IsNull && smr.m_Mesh.TryGet(out var actual)
+                        && actual.m_BoneNameHashes != null && actual.m_BoneNameHashes.Length > 0)
+                        continue;
+                    
                     var hashes = smr.m_Bones
                         .Where(b => b.TryGet(out _))
                         .Select(b => Crc32Of(BonePath(b)));
